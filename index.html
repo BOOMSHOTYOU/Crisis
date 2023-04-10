@@ -1,0 +1,115 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+    <meta charset="UTF-8" />
+    <title>Crisis</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+</head>
+<body>
+
+<script type="text/javascript">
+
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    backgroundColor: '#999999',
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 },
+            debug: false
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+const game = new Phaser.Game(config);
+
+let targets;
+let kills = 0;
+let killsText;
+let spawnTimer = 0;
+let timeText;
+let timeLeft = 20;
+
+function preload() {
+    this.load.image('target', 'assets/player_handgun.png');
+}
+
+function create() {
+    targets = this.physics.add.group();
+
+    killsText = this.add.text(10, 10, 'Kills: ' + kills, { font: '16px Arial', fill: '#ffffff' });
+    timeText = this.add.text(10, 30, 'Time left: ' + Math.floor(timeLeft / 60) + ':' + (timeLeft % 60).toString().padStart(2, '0'), { font: '16px Arial', fill: '#ffffff' });
+
+    this.time.addEvent({
+        delay: 1000,
+        callback: updateTime,
+        callbackScope: this,
+        loop: true
+    });
+}
+
+function updateTime() {
+    timeLeft--;
+    timeText.setText('Time left: ' + Math.floor(timeLeft / 60) + ':' + (timeLeft % 60).toString().padStart(2, '0'));
+
+    if (timeLeft === 0) {
+        endGame();
+    }
+}
+
+function update() {
+    if (this.time.now > spawnTimer) {
+        spawnTarget();
+        spawnTimer = this.time.now + Phaser.Math.Between(500, 2000);
+    }
+
+    this.input.on('gameobjectdown', onTargetClick);
+}
+
+function spawnTarget() {
+    const x = Phaser.Math.Between(50, 750);
+    const y = Phaser.Math.Between(50, 550);
+    const target = targets.create(x, y, 'target');
+    target.setInteractive();
+    target.setBounce(1);
+    target.setVelocity(Phaser.Math.Between(-200, 200), Phaser.Math.Between(-200, 200));
+}
+
+function onTargetClick(pointer, target) {
+    if (target.active) {
+        target.active = false;
+        target.destroy();
+        kills++;
+        killsText.setText('Kills: ' + kills);
+    }
+}
+
+function endGame() {
+    game.destroy();
+
+    const bestScore = localStorage.getItem('bestScore') || 0;
+    const message = 'Game over! You scored ' + kills + ' kills.\n';
+
+    if (kills > bestScore) {
+        localStorage.setItem('bestScore', kills);
+        alert(message + 'New high score!');
+    } else {
+        alert(message + 'Your best score is ' + bestScore);
+    }
+
+    const playAgain = confirm('Would you like to play again?');
+    if (playAgain) {
+        window.location.reload();
+    }
+}
+</script>
+
+</body>
+</html>
